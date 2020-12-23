@@ -1,14 +1,14 @@
 {
-  "name": "react-input-autosize",
-  "version": "3.0.0",
-  "description": "Auto-resizing Input Component for React",
+  "name": "react-textarea-autosize-2",
+  "version": "3.1.3",
+  "description": "Auto-resizing Textarea Component for React",
   "main": "lib/AutosizeInput.js",
   "js:next": "dist/react-input-autosize.es.js",
-  "author": "Jed Watson",
+  "author": "An Nguyen",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/JedWatson/react-input-autosize.git"
+    "url": "https://github.com/annguyenwasd/react-input-autosize.git"
   },
   "dependencies": {
     "prop-types": "^15.5.8"
