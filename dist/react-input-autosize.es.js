@@ -209,16 +209,14 @@ var possibleConstructorReturn = function (self, call) {
 };
 
 var sizerStyle = {
-	position: 'absolute',
+	position: "absolute",
 	top: 0,
 	left: 0,
-	visibility: 'hidden',
-	height: 0,
-	overflow: 'scroll',
-	whiteSpace: 'pre'
+	wordWrap: "break-word",
+	visibility: "hidden"
 };
 
-var INPUT_PROPS_BLACKLIST = ['extraWidth', 'injectStyles', 'inputClassName', 'inputRef', 'inputStyle', 'minWidth', 'onAutosize', 'placeholderIsMinWidth'];
+var INPUT_PROPS_BLACKLIST = ["extraWidth", "injectStyles", "inputClassName", "inputRef", "inputStyle", "minWidth", "onAutosize", "placeholderIsMinWidth"];
 
 var cleanInputProps = function cleanInputProps(inputProps) {
 	INPUT_PROPS_BLACKLIST.forEach(function (field) {
@@ -236,18 +234,20 @@ var copyStyles = function copyStyles(styles, node) {
 	node.style.textTransform = styles.textTransform;
 };
 
-var isIE = typeof window !== 'undefined' && window.navigator ? /MSIE |Trident\/|Edge\//.test(window.navigator.userAgent) : false;
+var isIE = typeof window !== "undefined" && window.navigator ? /MSIE |Trident\/|Edge\//.test(window.navigator.userAgent) : false;
 
 var generateId = function generateId() {
 	// we only need an auto-generated ID for stylesheet injection, which is only
 	// used for IE. so if the browser is not IE, this should return undefined.
-	return isIE ? '_' + Math.random().toString(36).substr(2, 12) : undefined;
+	return isIE ? "_" + Math.random().toString(36).substr(2, 12) : undefined;
 };
 
-var AutosizeInput = function (_Component) {
-	inherits(AutosizeInput, _Component);
-	createClass(AutosizeInput, null, [{
-		key: 'getDerivedStateFromProps',
+var THREAD_HOLD = 10;
+
+var AutosizeTextArea = function (_Component) {
+	inherits(AutosizeTextArea, _Component);
+	createClass(AutosizeTextArea, null, [{
+		key: "getDerivedStateFromProps",
 		value: function getDerivedStateFromProps(props, state) {
 			var id = props.id;
 
@@ -255,14 +255,66 @@ var AutosizeInput = function (_Component) {
 		}
 	}]);
 
-	function AutosizeInput(props) {
-		classCallCheck(this, AutosizeInput);
+	function AutosizeTextArea(props) {
+		classCallCheck(this, AutosizeTextArea);
 
-		var _this = possibleConstructorReturn(this, (AutosizeInput.__proto__ || Object.getPrototypeOf(AutosizeInput)).call(this, props));
+		var _this = possibleConstructorReturn(this, (AutosizeTextArea.__proto__ || Object.getPrototypeOf(AutosizeTextArea)).call(this, props));
+
+		_this.updateTextAreaRows = function () {
+			var _this$input = _this.input,
+			    offsetHeight = _this$input.offsetHeight,
+			    scrollHeight = _this$input.scrollHeight;
+
+
+			if (offsetHeight < scrollHeight) {
+				_this.setState(function (prev) {
+					return { rows: prev.rows + 1 };
+				});
+			}
+
+			if (_this.sizer.scrollHeight + THREAD_HOLD < offsetHeight && _this.state.rows > 1) {
+				_this.setState(function (prev) {
+					return { rows: prev.rows - 1 };
+				});
+			}
+		};
+
+		_this.pxToNumber = function (str) {
+			var PIXEL_REGEX = /\dpx/;
+			if (!PIXEL_REGEX.test(str)) return 0;
+
+			return +str.replace("px", "");
+		};
+
+		_this.getParentWidth = function () {
+			var parentSelector = _this.props.parentSelector;
+
+			if (parentSelector) {
+				var parent = _this.container.closest(parentSelector);
+				if (parent) {
+					_this.setState({ parentWidth: parent.clientWidth });
+
+					var totalPadding = 0;
+					var current = _this.input;
+					while (true) {
+						var style = window.getComputedStyle(current);
+						totalPadding += _this.pxToNumber(style.paddingLeft) + _this.pxToNumber(style.paddingRight) + _this.pxToNumber(style.marginLeft) + _this.pxToNumber(style.marginRight);
+
+						if (current.parentElement === parent || current.parentElement === null) {
+							break;
+						}
+
+						current = current.parentElement;
+					}
+					console.log(totalPadding);
+					_this.setState({ totalPadding: totalPadding });
+				}
+			}
+		};
 
 		_this.inputRef = function (el) {
 			_this.input = el;
-			if (typeof _this.props.inputRef === 'function') {
+			if (typeof _this.props.inputRef === "function") {
 				_this.props.inputRef(el);
 			}
 		};
@@ -275,38 +327,51 @@ var AutosizeInput = function (_Component) {
 			_this.sizer = el;
 		};
 
+		_this.containerRef = function (el) {
+			_this.container = el;
+		};
+
+		if (!_this.props.parentSelector) {
+			throw new Error("field `parentSelector` is required");
+		}
+
 		_this.state = {
 			inputWidth: props.minWidth,
 			inputId: props.id || generateId(),
-			prevId: props.id
+			prevId: props.id,
+			rows: 1,
+			parentWidth: "auto",
+			totalPadding: 0
 		};
 		return _this;
 	}
 
-	createClass(AutosizeInput, [{
-		key: 'componentDidMount',
+	createClass(AutosizeTextArea, [{
+		key: "componentDidMount",
 		value: function componentDidMount() {
 			this.mounted = true;
 			this.copyInputStyles();
 			this.updateInputWidth();
+			this.getParentWidth();
 		}
 	}, {
-		key: 'componentDidUpdate',
+		key: "componentDidUpdate",
 		value: function componentDidUpdate(prevProps, prevState) {
 			if (prevState.inputWidth !== this.state.inputWidth) {
-				if (typeof this.props.onAutosize === 'function') {
+				if (typeof this.props.onAutosize === "function") {
 					this.props.onAutosize(this.state.inputWidth);
 				}
 			}
 			this.updateInputWidth();
+			this.updateTextAreaRows();
 		}
 	}, {
-		key: 'componentWillUnmount',
+		key: "componentWillUnmount",
 		value: function componentWillUnmount() {
 			this.mounted = false;
 		}
 	}, {
-		key: 'copyInputStyles',
+		key: "copyInputStyles",
 		value: function copyInputStyles() {
 			if (!this.mounted || !window.getComputedStyle) {
 				return;
@@ -321,9 +386,9 @@ var AutosizeInput = function (_Component) {
 			}
 		}
 	}, {
-		key: 'updateInputWidth',
+		key: "updateInputWidth",
 		value: function updateInputWidth() {
-			if (!this.mounted || !this.sizer || typeof this.sizer.scrollWidth === 'undefined') {
+			if (!this.mounted || !this.sizer || typeof this.sizer.scrollWidth === "undefined") {
 				return;
 			}
 			var newInputWidth = void 0;
@@ -333,7 +398,7 @@ var AutosizeInput = function (_Component) {
 				newInputWidth = this.sizer.scrollWidth + 2;
 			}
 			// add extraWidth to the detected width. for number types, this defaults to 16 to allow for the stepper UI
-			var extraWidth = this.props.type === 'number' && this.props.extraWidth === undefined ? 16 : parseInt(this.props.extraWidth) || 0;
+			var extraWidth = this.props.type === "number" && this.props.extraWidth === undefined ? 16 : parseInt(this.props.extraWidth) || 0;
 			newInputWidth += extraWidth;
 			if (newInputWidth < this.props.minWidth) {
 				newInputWidth = this.props.minWidth;
@@ -345,56 +410,69 @@ var AutosizeInput = function (_Component) {
 			}
 		}
 	}, {
-		key: 'getInput',
+		key: "getInput",
 		value: function getInput() {
 			return this.input;
 		}
 	}, {
-		key: 'focus',
+		key: "focus",
 		value: function focus() {
 			this.input.focus();
 		}
 	}, {
-		key: 'blur',
+		key: "blur",
 		value: function blur() {
 			this.input.blur();
 		}
 	}, {
-		key: 'select',
+		key: "select",
 		value: function select() {
 			this.input.select();
 		}
 	}, {
-		key: 'renderStyles',
+		key: "renderStyles",
 		value: function renderStyles() {
 			// this method injects styles to hide IE's clear indicator, which messes
 			// with input size detection. the stylesheet is only injected when the
 			// browser is IE, and can also be disabled by the `injectStyles` prop.
 			var injectStyles = this.props.injectStyles;
 
-			return isIE && injectStyles ? React.createElement('style', { dangerouslySetInnerHTML: {
-					__html: 'input#' + this.state.inputId + '::-ms-clear {display: none;}'
-				} }) : null;
+			return isIE && injectStyles ? React.createElement("style", {
+				dangerouslySetInnerHTML: {
+					__html: "input#" + this.state.inputId + "::-ms-clear {display: none;}"
+				}
+			}) : null;
 		}
 	}, {
-		key: 'render',
+		key: "render",
 		value: function render() {
-			var sizerValue = [this.props.defaultValue, this.props.value, ''].reduce(function (previousValue, currentValue) {
+			var sizerValue = [this.props.defaultValue, this.props.value, ""].reduce(function (previousValue, currentValue) {
 				if (previousValue !== null && previousValue !== undefined) {
 					return previousValue;
 				}
 				return currentValue;
 			});
 
-			var wrapperStyle = _extends({}, this.props.style);
-			if (!wrapperStyle.display) wrapperStyle.display = 'inline-block';
+			var _props$siblingWidth = this.props.siblingWidth,
+			    siblingWidth = _props$siblingWidth === undefined ? 0 : _props$siblingWidth;
+
+
+			var maxWidth = this.state.parentWidth === "auto" ? "auto" : this.state.parentWidth - this.state.totalPadding - 2 - siblingWidth;
+
+			var wrapperStyle = _extends({}, this.props.style, {
+				maxWidth: maxWidth
+			});
+			if (!wrapperStyle.display) wrapperStyle.display = "inline-block";
 
 			var inputStyle = _extends({
-				boxSizing: 'content-box',
-				width: this.state.inputWidth + 'px'
+				boxSizing: "content-box",
+				width: this.state.inputWidth + "px",
+				maxWidth: maxWidth
 			}, this.props.inputStyle);
 
-			var inputProps = objectWithoutProperties(this.props, []);
+			var _props = this.props,
+			    parentQuery = _props.parentQuery,
+			    inputProps = objectWithoutProperties(_props, ["parentQuery"]);
 
 			cleanInputProps(inputProps);
 			inputProps.className = this.props.inputClassName;
@@ -402,37 +480,56 @@ var AutosizeInput = function (_Component) {
 			inputProps.style = inputStyle;
 
 			return React.createElement(
-				'div',
-				{ className: this.props.className, style: wrapperStyle },
+				"div",
+				{
+					ref: this.containerRef,
+					className: this.props.className,
+					style: wrapperStyle
+				},
 				this.renderStyles(),
-				React.createElement('input', _extends({}, inputProps, { ref: this.inputRef })),
+				React.createElement("textarea", _extends({}, inputProps, {
+					style: _extends({}, inputProps.style, {
+						resize: "none"
+					}),
+					rows: this.state.rows,
+					ref: this.inputRef,
+					onKeyPress: function onKeyPress(e) {
+						if (e.key === "Enter") {
+							e.preventDefault();
+						}
+					}
+				})),
 				React.createElement(
-					'div',
-					{ ref: this.sizerRef, style: sizerStyle },
+					"div",
+					{ ref: this.sizerRef, style: _extends({}, sizerStyle, { maxWidth: maxWidth }) },
 					sizerValue
 				),
 				this.props.placeholder ? React.createElement(
-					'div',
+					"div",
 					{ ref: this.placeHolderSizerRef, style: sizerStyle },
 					this.props.placeholder
 				) : null
 			);
 		}
 	}]);
-	return AutosizeInput;
+	return AutosizeTextArea;
 }(Component);
 
-AutosizeInput.propTypes = {
+AutosizeTextArea.propTypes = {
 	className: PropTypes.string, // className for the outer element
+	parentQuery: PropTypes.string,
+	siblingWidth: PropTypes.number,
 	defaultValue: PropTypes.any, // default field value
-	extraWidth: PropTypes.oneOfType([// additional width for input element
+	extraWidth: PropTypes.oneOfType([
+	// additional width for input element
 	PropTypes.number, PropTypes.string]),
 	id: PropTypes.string, // id to use for the input, can be set for consistent snapshots
 	injectStyles: PropTypes.bool, // inject the custom stylesheet to hide clear UI, defaults to true
 	inputClassName: PropTypes.string, // className for the input element
 	inputRef: PropTypes.func, // ref callback for the input element
 	inputStyle: PropTypes.object, // css styles for the input element
-	minWidth: PropTypes.oneOfType([// minimum width for input element
+	minWidth: PropTypes.oneOfType([
+	// minimum width for input element
 	PropTypes.number, PropTypes.string]),
 	onAutosize: PropTypes.func, // onAutosize handler: function(newWidth) {}
 	onChange: PropTypes.func, // onChange handler: function(event) {}
@@ -441,9 +538,9 @@ AutosizeInput.propTypes = {
 	style: PropTypes.object, // css styles for the outer element
 	value: PropTypes.any // field value
 };
-AutosizeInput.defaultProps = {
+AutosizeTextArea.defaultProps = {
 	minWidth: 1,
 	injectStyles: true
 };
 
-export default AutosizeInput;
+export default AutosizeTextArea;

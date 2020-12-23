@@ -6,7 +6,7 @@ const sizerStyle = {
 	top: 0,
 	left: 0,
 	wordWrap: "break-word",
-  visibility: 'hidden'
+	visibility: "hidden",
 };
 
 const INPUT_PROPS_BLACKLIST = [
@@ -47,7 +47,7 @@ const generateId = () => {
 
 const THREAD_HOLD = 10;
 
-class AutosizeInput extends Component {
+class AutosizeTextArea extends Component {
 	static getDerivedStateFromProps(props, state) {
 		const { id } = props;
 		return id !== state.prevId
@@ -57,9 +57,9 @@ class AutosizeInput extends Component {
 	constructor(props) {
 		super(props);
 
-    if (!this.props.parentQuery) {
-      throw new Error('field `queryParent` is required');
-    }
+		if (!this.props.parentSelector) {
+			throw new Error("field `parentSelector` is required");
+		}
 
 		this.state = {
 			inputWidth: props.minWidth,
@@ -67,6 +67,7 @@ class AutosizeInput extends Component {
 			prevId: props.id,
 			rows: 1,
 			parentWidth: "auto",
+			totalPadding: 0,
 		};
 	}
 	componentDidMount() {
@@ -101,12 +102,39 @@ class AutosizeInput extends Component {
 			this.setState((prev) => ({ rows: prev.rows - 1 }));
 		}
 	};
+	pxToNumber = (str) => {
+		const PIXEL_REGEX = /\dpx/;
+		if (!PIXEL_REGEX.test(str)) return 0;
+
+		return +str.replace("px", "");
+	};
 	getParentWidth = () => {
-		const { parentQuery } = this.props;
-		if (parentQuery) {
-			const parent = this.container.closest(parentQuery);
+		const { parentSelector } = this.props;
+		if (parentSelector) {
+			const parent = this.container.closest(parentSelector);
 			if (parent) {
 				this.setState({ parentWidth: parent.clientWidth });
+
+				let totalPadding = 0;
+				let current = this.input;
+				while (true) {
+					const style = window.getComputedStyle(current);
+					totalPadding +=
+						this.pxToNumber(style.paddingLeft) +
+						this.pxToNumber(style.paddingRight) +
+						this.pxToNumber(style.marginLeft) +
+						this.pxToNumber(style.marginRight);
+
+					if (
+						current.parentElement === parent ||
+						current.parentElement === null
+					) {
+						break;
+					}
+
+					current = current.parentElement;
+				}
+				this.setState({ totalPadding });
 			}
 		}
 	};
@@ -212,10 +240,15 @@ class AutosizeInput extends Component {
 			return currentValue;
 		});
 
+		const { siblingWidth = 0 } = this.props;
+
 		const maxWidth =
 			this.state.parentWidth === "auto"
 				? "auto"
-				: `calc(${this.state.parentWidth}px - 10px)`;
+				: this.state.parentWidth -
+				  this.state.totalPadding -
+				  2 -
+				  siblingWidth;
 
 		const wrapperStyle = {
 			...this.props.style,
@@ -270,9 +303,10 @@ class AutosizeInput extends Component {
 	}
 }
 
-AutosizeInput.propTypes = {
+AutosizeTextArea.propTypes = {
 	className: PropTypes.string, // className for the outer element
 	parentQuery: PropTypes.string,
+	siblingWidth: PropTypes.number,
 	defaultValue: PropTypes.any, // default field value
 	extraWidth: PropTypes.oneOfType([
 		// additional width for input element
@@ -296,9 +330,9 @@ AutosizeInput.propTypes = {
 	style: PropTypes.object, // css styles for the outer element
 	value: PropTypes.any, // field value
 };
-AutosizeInput.defaultProps = {
+AutosizeTextArea.defaultProps = {
 	minWidth: 1,
 	injectStyles: true,
 };
 
-export default AutosizeInput;
+export default AutosizeTextArea;

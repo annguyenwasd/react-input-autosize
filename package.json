@@ -1,6 +1,6 @@
 {
   "name": "react-textarea-autosize-2",
-  "version": "3.1.3",
+  "version": "3.1.5",
   "description": "Auto-resizing Textarea Component for React",
   "main": "lib/AutosizeInput.js",
   "js:next": "dist/react-input-autosize.es.js",
