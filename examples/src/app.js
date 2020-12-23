@@ -24,40 +24,14 @@ class App extends Component {
 	};
 	render () {
 		return (
-			<div>
+			<div style={{ width: 300, border: '1px dashed red' }} className="hihi">
 				<h3>Simple example:</h3>
-				<AutosizeInput
-					autoFocus
-					value={this.state.value1}
-					onChange={this.updateInputValue.bind(this, 'value1')}
-				/>
 				<h3>Styled example with default value:</h3>
 				<AutosizeInput
+					minWidth={100}
+					parentQuery=".hihi"
 					value={this.state.value2}
 					onChange={this.updateInputValue.bind(this, 'value2')}
-					style={{ background: '#eee', borderRadius: 5, padding: 5 }}
-					inputStyle={{ border: '1px solid #999', borderRadius: 3, padding: 3, fontSize: 14 }}
-				/>
-				<h3>Typed example with default value:</h3>
-				<AutosizeInput
-					value={this.state.value3}
-					type="number"
-					onChange={this.updateInputValue.bind(this, 'value3')}
-				/>
-				<h3>Input with placeholder:</h3>
-				<AutosizeInput
-					placeholder="Placeholder"
-					value={this.state.value4}
-					onChange={this.updateInputValue.bind(this, 'value4')}
-					style={{ background: '#eee', borderRadius: 5, padding: 5 }}
-					inputStyle={{ border: '1px solid #999', borderRadius: 3, padding: 3, fontSize: 14 }}
-				/>
-				<h3>Input with placeholder as minimum width:</h3>
-				<AutosizeInput
-					placeholder="Placeholder"
-					placeholderIsMinWidth
-					value={this.state.value5}
-					onChange={this.updateInputValue.bind(this, 'value5')}
 					style={{ background: '#eee', borderRadius: 5, padding: 5 }}
 					inputStyle={{ border: '1px solid #999', borderRadius: 3, padding: 3, fontSize: 14 }}
 				/>
